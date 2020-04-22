@@ -22,14 +22,18 @@ import json
 __author__ = 'A.Sánchez <asanchez@koodous.com> && xgusix'
 
 
-def download_report(sha256, dst):
+def download_report(sha256, auth, dst):
     """
         Function to download and save the Androguard report from Koodous.
     """
 
+    if not auth:
+        print("Please, provide your token!")
+        return
+
     url = 'https://api.koodous.com/apks/{}/analysis'.format(sha256)
     data = dict()
-    response = requests.get(url=url)
+    response = requests.get(url=url, headers={"Authorization": "Token {}".format(auth)})
 
     #Check if the APK is in the database
     if response.status_code == 405:
@@ -62,11 +66,13 @@ def main():
     parser.add_argument('-o', '--output', action='store', dest='filename',
                 help=("File to dump the downloaded report, by default: "
                 "<sha256>-report.json"))
+    parser.add_argument('-a', '--auth', action='store', dest='auth',
+                help=("Authorization token for Koodous API"))
 
     args = parser.parse_args()
 
-    if not args.sha256:
-        print "I need at least a SHA256 hash!"
+    if not args.sha256 or not args.auth:
+        print "I need at least a SHA256 hash and your Koodous API token!"
         parser.print_help()
         return
 
@@ -75,7 +81,7 @@ def main():
         report_name = args.filename
 
 
-    success = download_report(sha256=args.sha256, dst=report_name)
+    success = download_report(sha256=args.sha256, auth=args.auth, dst=report_name)
     if success:
         print "Androguard report saved in {}".format(report_name)
 
