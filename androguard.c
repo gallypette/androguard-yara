@@ -24,7 +24,7 @@ limitations under the License.
 
 #include <jansson.h>
 #include <string.h>
-
+#include <fleur/fleur.h>
 
 #include <yara/re.h>
 #include <yara/modules.h>
@@ -35,6 +35,25 @@ limitations under the License.
 
 #define MODULE_NAME androguard
 
+#define BF_PATH_IN "/home/jlouis/Git/yara/images.bloom"
+
+// BloomFilter global variable
+static BloomFilter bf;
+
+/*
+  strtoupper puts a given string to uppercase
+*/
+char* andro_strtoupper(char* s) {
+  assert(s != NULL);
+
+  char* p = s;
+  while (*p != '\0') {
+    *p = toupper(*p);
+    p++;
+  }
+
+  return s;
+}
 
 /*
   Permissions struct (combine both)
@@ -50,8 +69,8 @@ struct permissions {
 */
 define_function(certificate_subject_lookup)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = parent();
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_parent();
   char *value = NULL;
   uint64_t result = 0;
   json_t *val;
@@ -87,8 +106,8 @@ void remove_colon(const char* input, char* output) {
 */
 define_function(certificate_not_before_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = parent();
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_parent();
   char *value = NULL;
   uint64_t result = 0;
   json_t *val;
@@ -112,7 +131,7 @@ define_function(certificate_not_before_lookup_regex)
 */
 define_function(certificate_not_before_lookup_string)
 {
-  YR_OBJECT* obj = parent();
+  YR_OBJECT* obj = yr_parent();
   char *value = NULL;
   uint64_t result = 0;
   json_t *val;
@@ -136,8 +155,8 @@ define_function(certificate_not_before_lookup_string)
 */
 define_function(certificate_not_after_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = parent();
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_parent();
   char *value = NULL;
   uint64_t result = 0;
   json_t *val;
@@ -161,7 +180,7 @@ define_function(certificate_not_after_lookup_regex)
 */
 define_function(certificate_not_after_lookup_string)
 {
-  YR_OBJECT* obj = parent();
+  YR_OBJECT* obj = yr_parent();
   char *value = NULL;
   uint64_t result = 0;
   json_t *val;
@@ -183,7 +202,7 @@ define_function(certificate_not_after_lookup_string)
 */
 define_function(certificate_sha1_lookup)
 {
-  YR_OBJECT* obj = parent();
+  YR_OBJECT* obj = yr_parent();
   char *value = NULL;
   uint64_t result = 0;
   json_t *val;
@@ -217,8 +236,8 @@ define_function(certificate_sha1_lookup)
 */
 define_function(certificate_issuer_lookup)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = parent();
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_parent();
   char *value = NULL;
   uint64_t result = 0;
   json_t *val;
@@ -243,8 +262,8 @@ define_function(certificate_issuer_lookup)
 */
 define_function(main_activity_lookup)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = get_object(module(), "main_activity");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_get_object(yr_module(), "main_activity");
   char* value = obj->data;
   uint64_t result = 0;
 
@@ -262,8 +281,8 @@ define_function(main_activity_lookup)
 */
 define_function(permission_lookup)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = get_object(module(), "permission");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_get_object(yr_module(), "permission");
   struct permissions *a;
 
   a = obj->data;
@@ -303,8 +322,8 @@ define_function(permission_lookup)
 */
 define_function(activity_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* activity_obj = get_object(module(), "activity");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* activity_obj = yr_get_object(yr_module(), "activity");
   json_t* list = (json_t*) activity_obj->data;
 
   uint64_t result = 0;
@@ -327,7 +346,7 @@ define_function(activity_lookup_regex)
 */
 define_function(activity_lookup_string)
 {
-  YR_OBJECT* activity_obj = get_object(module(), "activity");
+  YR_OBJECT* activity_obj = yr_get_object(yr_module(), "activity");
   json_t* list = (json_t*) activity_obj->data;
 
   uint64_t result = 0;
@@ -350,8 +369,8 @@ define_function(activity_lookup_string)
 */
 define_function(service_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* service_obj = get_object(module(), "service");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* service_obj = yr_get_object(yr_module(), "service");
   json_t* list = (json_t*) service_obj->data;
 
   uint64_t result = 0;
@@ -374,7 +393,7 @@ define_function(service_lookup_regex)
 */
 define_function(service_lookup_string)
 {
-  YR_OBJECT* service_obj = get_object(module(), "service");
+  YR_OBJECT* service_obj = yr_get_object(yr_module(), "service");
   json_t* list = (json_t*) service_obj->data;
 
   uint64_t result = 0;
@@ -397,8 +416,8 @@ define_function(service_lookup_string)
 */
 define_function(filter_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* filter_obj = get_object(module(), "filter");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* filter_obj = yr_get_object(yr_module(), "filter");
   json_t* list = (json_t*) filter_obj->data;
 
   uint64_t result = 0;
@@ -421,7 +440,7 @@ define_function(filter_lookup_regex)
 */
 define_function(filter_lookup_string)
 {
-  YR_OBJECT* filter_obj = get_object(module(), "filter");
+  YR_OBJECT* filter_obj = yr_get_object(yr_module(), "filter");
   json_t* list = (json_t*) filter_obj->data;
 
   uint64_t result = 0;
@@ -444,8 +463,8 @@ define_function(filter_lookup_string)
 */
 define_function(receiver_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* receiver_obj = get_object(module(), "receiver");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* receiver_obj = yr_get_object(yr_module(), "receiver");
   json_t* list = (json_t*) receiver_obj->data;
 
   uint64_t result = 0;
@@ -468,7 +487,7 @@ define_function(receiver_lookup_regex)
 */
 define_function(receiver_lookup_string)
 {
-  YR_OBJECT* receiver_obj = get_object(module(), "receiver");
+  YR_OBJECT* receiver_obj = yr_get_object(yr_module(), "receiver");
   json_t* list = (json_t*) receiver_obj->data;
 
   uint64_t result = 0;
@@ -491,8 +510,8 @@ define_function(receiver_lookup_string)
 */
 define_function(displayed_version_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = get_object(module(), "displayed_version");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_get_object(yr_module(), "displayed_version");
   char* value = obj->data;
   uint64_t result = 0;
 
@@ -510,7 +529,7 @@ define_function(displayed_version_lookup_regex)
 */
 define_function(displayed_version_lookup_string)
 {
-  YR_OBJECT* obj = get_object(module(), "displayed_version");
+  YR_OBJECT* obj = yr_get_object(yr_module(), "displayed_version");
   char* value = obj->data;
   uint64_t result = 0;
 
@@ -529,8 +548,8 @@ define_function(displayed_version_lookup_string)
 */
 define_function(url_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = get_object(module(), "url");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_get_object(yr_module(), "url");
   json_t* list = (json_t*) obj->data;
 
   uint64_t result = 0;
@@ -553,7 +572,62 @@ define_function(url_lookup_regex)
 */
 define_function(url_lookup_string)
 {
-  YR_OBJECT* obj = get_object(module(), "url");
+  YR_OBJECT* obj = yr_get_object(yr_module(), "url");
+  json_t* list = (json_t*) obj->data;
+
+  uint64_t result = 0;
+  size_t index;
+  json_t* value;
+
+  json_array_foreach(list, index, value)
+  {
+    if (strcasecmp(string_argument(1), json_string_value(value)) == 0)
+    {
+      result = 1;
+      break;
+    }
+  }
+  return_integer(result);
+}
+
+/*
+  Function to detect images's sha256 hexdigest (with string)
+*/
+define_function(image_filter_lookup_sha256)
+{
+  int64_t topupperflag = integer_argument(1);
+
+  YR_OBJECT* obj = yr_get_object(yr_module(), "image");
+  json_t* list = (json_t*) obj->data;
+
+  uint64_t result = 0;
+  size_t index;
+  json_t* value;
+  char * tmp;
+  tmp = "";
+
+  json_array_foreach(list, index, value)
+  {
+    tmp = strdup(json_string_value(value));
+    if (topupperflag == (int64_t)1) {
+      result = fleur_check(&bf, andro_strtoupper(tmp), strlen(tmp));
+    }else{
+      result = fleur_check(&bf, tmp, strlen(tmp));
+    }
+    if (result == 1){
+      break;
+    }
+  }
+  return_integer(result);
+}
+
+/*
+  Function that check whehter an images's sha256 hexdigest
+  is part of a given bloom filter
+*/
+define_function(image_lookup_sha256)
+{
+  YR_OBJECT* obj = yr_get_object(yr_module(), "image");
   json_t* list = (json_t*) obj->data;
 
   uint64_t result = 0;
@@ -576,8 +650,8 @@ define_function(url_lookup_string)
 */
 define_function(appname_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* obj = get_object(module(), "app_name");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* obj = yr_get_object(yr_module(), "app_name");
   char* value = obj->data;
   uint64_t result = 0;
 
@@ -595,7 +669,7 @@ define_function(appname_lookup_regex)
 */
 define_function(appname_lookup_string)
 {
-  YR_OBJECT* obj = get_object(module(), "app_name");
+  YR_OBJECT* obj = yr_get_object(yr_module(), "app_name");
   char* value = obj->data;
   uint64_t result = 0;
 
@@ -613,8 +687,8 @@ define_function(appname_lookup_string)
 */
 define_function(package_name_lookup_regex)
 {
-  YR_SCAN_CONTEXT *ctx = scan_context();
-  YR_OBJECT* package_name_obj = get_object(module(), "package_name");
+  YR_SCAN_CONTEXT *ctx = yr_scan_context();
+  YR_OBJECT* package_name_obj = yr_get_object(yr_module(), "package_name");
   char* value = package_name_obj->data;
   uint64_t result = 0;
 
@@ -632,7 +706,7 @@ define_function(package_name_lookup_regex)
 */
 define_function(package_name_lookup_string)
 {
-  YR_OBJECT* package_name_obj = get_object(module(), "package_name");
+  YR_OBJECT* package_name_obj = yr_get_object(yr_module(), "package_name");
   char* value = package_name_obj->data;
   uint64_t result = 0;
 
@@ -669,6 +743,9 @@ begin_declarations;
   declare_function("url", "r", "i", url_lookup_regex);
   declare_function("url", "s", "i", url_lookup_string);
 
+  declare_function("image", "s", "i", image_lookup_sha256);
+  declare_function("image", "i", "i", image_filter_lookup_sha256);
+
   declare_function("app_name", "r", "i", appname_lookup_regex);
   declare_function("app_name", "s", "i", appname_lookup_string);
 
@@ -700,6 +777,16 @@ end_declarations;
 int module_initialize(
     YR_MODULE* module)
 {
+  // Open the images bloom filter
+  FILE* in = fopen(BF_PATH_IN, "rb");
+  if (in == NULL) {
+      exit(EXIT_FAILURE);
+  }
+
+  bf = fleur_bloom_filter_from_file(in);
+
+  fclose(in);
+
   return ERROR_SUCCESS;
 }
 
@@ -733,6 +820,7 @@ int module_load(
   YR_OBJECT* filter_obj = NULL;
   YR_OBJECT* receiver_obj = NULL;
   YR_OBJECT* url_obj = NULL;
+  YR_OBJECT* image_obj = NULL;
   YR_OBJECT* displayed_version_obj = NULL;
   struct permissions *permissions_struct = NULL;
 
@@ -755,17 +843,18 @@ int module_load(
     return ERROR_INVALID_FILE;
 
   /* Assign each object to their variables */
-  package_name_obj = get_object(module_object, "package_name");
-  activity_obj = get_object(module_object, "activity");
-  main_activity_obj = get_object(module_object, "main_activity");
-  permission_obj = get_object(module_object, "permission");
-  appname_obj = get_object(module_object, "app_name");
-  certificate_obj = get_object(module_object, "certificate");
-  service_obj = get_object(module_object, "service");
-  filter_obj = get_object(module_object, "filter");
-  receiver_obj = get_object(module_object, "receiver");
-  url_obj = get_object(module_object, "url");
-  displayed_version_obj = get_object(module_object, "displayed_version");
+  package_name_obj = yr_get_object(module_object, "package_name");
+  activity_obj = yr_get_object(module_object, "activity");
+  main_activity_obj = yr_get_object(module_object, "main_activity");
+  permission_obj = yr_get_object(module_object, "permission");
+  appname_obj = yr_get_object(module_object, "app_name");
+  certificate_obj = yr_get_object(module_object, "certificate");
+  service_obj = yr_get_object(module_object, "service");
+  filter_obj = yr_get_object(module_object, "filter");
+  receiver_obj = yr_get_object(module_object, "receiver");
+  url_obj = yr_get_object(module_object, "url");
+  image_obj = yr_get_object(module_object, "image");
+  displayed_version_obj = yr_get_object(module_object, "displayed_version");
 
 
   /* Set SDK versions
@@ -777,7 +866,7 @@ int module_load(
   } else {
     version = json_integer_value(json_object_get(json, "min_sdk_version"));
   }
-  set_integer(version, module_object, "min_sdk");
+  yr_set_integer(version, module_object, "min_sdk");
 
   /* MAX_SDK_VERSION */
   version = 0;
@@ -787,7 +876,7 @@ int module_load(
   } else {
     version = json_integer_value(json_object_get(json, "max_sdk_version"));
   }
-  set_integer(version, module_object, "max_sdk");
+  yr_set_integer(version, module_object, "max_sdk");
 
   /* TARGET_SDK_VERSION */
   version = 0;
@@ -797,7 +886,7 @@ int module_load(
   } else {
     version = json_integer_value(json_object_get(json, "target_sdk_version"));
   }
-  set_integer(version, module_object, "target_sdk");
+  yr_set_integer(version, module_object, "target_sdk");
 
   /* Now extract other values from JSON */
   certificate_obj->data = json_object_get(json, "certificate");
@@ -806,6 +895,7 @@ int module_load(
   filter_obj->data = json_object_get(json, "filters");
   receiver_obj->data = json_object_get(json, "receivers");
   url_obj->data = json_object_get(json, "urls");
+  image_obj->data = json_object_get(json, "images_sha256");
 
   /* Extract main_activity */
   main_activity_obj->data = (char *)json_string_value(
@@ -834,7 +924,7 @@ int module_load(
   /* Permissions number */
   perms_number = json_array_size(permissions_struct->permissions);
   perms_number += json_array_size(permissions_struct->new_permissions);
-  set_integer(perms_number, module_object, "permissions_number");
+  yr_set_integer(perms_number, module_object, "permissions_number");
 
   return ERROR_SUCCESS;
 }
@@ -847,7 +937,7 @@ int module_unload(YR_OBJECT* module)
     json_decref((json_t*) module->data);
 
   //Free memory allocated in module load
-  obj = get_object(module, "permission");
+  obj = yr_get_object(module, "permission");
   if (obj != NULL) {
     free(obj->data);
   }
